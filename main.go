@@ -14,7 +14,8 @@ import (
 
 	_ "github.com/lib/pq"
 )
-type apiConfig struct{
+
+type apiConfig struct {
 	DB *database.Queries
 }
 
@@ -28,15 +29,15 @@ func main() {
 	}
 
 	dbURL := os.Getenv("DB_URL")
-	if dbURL == ""{
+	if dbURL == "" {
 		log.Fatal("DB_URL is not in the env")
 	}
 
-	conn, err := sql.Open("postgres",dbURL)
-	if err!= nil{
+	conn, err := sql.Open("postgres", dbURL)
+	if err != nil {
 		log.Fatal("Cant connect to database:", err)
 	}
-	
+
 	apiCfg := apiConfig{
 		DB: database.New(conn),
 	}
@@ -55,7 +56,9 @@ func main() {
 	v1Router.Get("/healthz", handlerReadiness) //healthz is kubernetes convention
 	v1Router.Get("/err", handlerErr)
 	v1Router.Post("/users", apiCfg.handlerUsersCreate)
-	v1Router.Get("/users", apiCfg.handlerUsersGet)
+	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerUsersGet))
+	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerFeedCreate))
+	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
 
 	router.Mount("/v1", v1Router)
 

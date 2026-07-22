@@ -3,8 +3,8 @@ package main
 import (
 	"net/http"
 
-	"github.com/aadides/projects/createfeed/internal/auth"
-	"github.com/aadides/projects/createfeed/internal/database"
+	"github.com/aadides/rssaggre/internal/auth"
+	"github.com/aadides/rssaggre/internal/database"
 )
 
 type authedHandler func(http.ResponseWriter, *http.Request, database.User)

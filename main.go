@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/aadides/rssaggre/internal/database"
 	"github.com/go-chi/chi/v5"
@@ -21,6 +22,12 @@ type apiConfig struct {
 
 func main() {
 	fmt.Println("Lets begin")
+
+	feed, err := urlToFeed("https://wagslane.dev/index.xml")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(feed)
 	godotenv.Load()
 
 	portString := os.Getenv("PORT")
@@ -41,6 +48,10 @@ func main() {
 	apiCfg := apiConfig{
 		DB: database.New(conn),
 	}
+
+	db := database.New(conn)
+
+	go startScraping(db, 10, time.Minute)
 	router := chi.NewRouter()
 
 	router.Use(cors.Handler(cors.Options{
@@ -55,11 +66,17 @@ func main() {
 	v1Router := chi.NewRouter()
 	v1Router.Get("/healthz", handlerReadiness) //healthz is kubernetes convention
 	v1Router.Get("/err", handlerErr)
+
 	v1Router.Post("/users", apiCfg.handlerUsersCreate)
+
 	v1Router.Get("/users", apiCfg.middlewareAuth(apiCfg.handlerUsersGet))
+
 	v1Router.Post("/feeds", apiCfg.middlewareAuth(apiCfg.handlerFeedCreate))
+
 	v1Router.Get("/feeds", apiCfg.handlerGetFeeds)
+	v1Router.Get("/posts", apiCfg.middlewareAuth(apiCfg.handlerPostsGet))
 	v1Router.Get("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowsGet))
+
 	v1Router.Post("/feed_follows", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowCreate))
 	v1Router.Delete("/feed_follows/{feedFollowID}", apiCfg.middlewareAuth(apiCfg.handlerFeedFollowDelete))
 
